@@ -1,0 +1,386 @@
+schema {
+  query: Query
+  mutation: Mutation
+}
+
+type Bookmark {
+  chapter_id: ID!
+  novel_id: ID!
+  page_index: Int!
+  user_id: ID!
+}
+
+type Chapter {
+  id: ID!
+  novel: Novel!
+  number: Int
+  text: String
+  title: String
+}
+
+input ChapterReorder {
+  id: ID!
+  novelId: ID!
+  number: Int!
+}
+
+type Comment {
+  downvotes: Int!
+  id: ID!
+  novel_id: ID!
+  parent_id: ID
+  replies: [Comment!]!
+  text: String!
+  upvotes: Int!
+  user: User!
+  userVote: Int!
+}
+
+scalar DateTime
+
+input LoginInput {
+  email: String!
+  password: String!
+}
+
+"""
+Loose type that allows any value. Be careful when passing in large `Int` or `Float` literals,
+as they may not be parsed correctly on the server side. Use `String` literals if you are
+dealing with really large numbers to be on the safe side.
+"""
+scalar Mixed
+
+type Mutation {
+  addFavourite(novelId: ID!): Boolean!
+  createBookmark(chapterId: ID!, novelId: ID!): Boolean!
+  createChapter(chapterNumber: Int, novelId: ID!): ID!
+  createComment(novelId: ID!, parentId: ID, text: String!): Boolean!
+  createNovel(description: String, image: String, tags: [String!], title: String!): Boolean!
+  createQuote(input: QuoteInput!): ID!
+  deleteChapter(chapterId: ID!): Boolean!
+  deleteNovel(novelId: ID!): Boolean!
+  deleteQuote(id: ID!): Boolean!
+  deleteRating(novelId: ID!): UserNovelRatingCheck!
+  deleteUser(userId: ID!): Boolean!
+  dismissReport(commentId: ID!): Boolean!
+  doVote(commentId: ID!, value: Int!): Boolean!
+  incrementReads(novelId: ID!): Boolean!
+  login(input: LoginInput!): User!
+  logout: User
+  rateNovel(novelId: ID!, rating: Float!): UserNovelRatingCheck!
+  register(input: RegisterInput!): User!
+  removeComment(commentId: ID!): Boolean!
+  removeFavourite(novelId: ID!): Boolean!
+  removeVote(commentId: ID!): Boolean!
+  reorderChapters(reorder: [ChapterReorder!]!): Boolean!
+  reportComment(commentId: ID!): Boolean!
+  requestWriterRole: Boolean!
+  swapUserRole(userId: ID!): Boolean!
+  toggleBanUser(userId: ID!): Boolean!
+  updateChapterTitleAndText(chapterId: ID!, text: String!, title: String!): Boolean!
+  updateNovel(description: String, image: String, novelId: ID!, tags: [String!], title: String!): Boolean!
+  updateReadingList(force: Boolean, value: ReadingList!): Boolean!
+}
+
+type Novel {
+  author: String!
+  chapters: [Chapter!]!
+  chaptersCount: Int!
+  commentsCount: Int!
+  description: String
+  favouritesCount: Int!
+  id: ID!
+  image: String
+  rating: Float
+  reads: Int
+  tagString: String
+  tags: [Tag!]!
+  title: String!
+  user: User
+}
+
+"""Allows ordering a list of records."""
+input OrderByClause {
+  """The column that is used for ordering."""
+  column: String!
+  """The direction that is used for ordering."""
+  order: SortOrder!
+}
+
+"""
+Aggregate functions when ordering by a relation without specifying a column.
+"""
+enum OrderByRelationAggregateFunction {
+  """Amount of items."""
+  COUNT
+}
+
+"""
+Aggregate functions when ordering by a relation that may specify a column.
+"""
+enum OrderByRelationWithColumnAggregateFunction {
+  """Average."""
+  AVG
+  """Amount of items."""
+  COUNT
+  """Maximum."""
+  MAX
+  """Minimum."""
+  MIN
+  """Sum."""
+  SUM
+}
+
+type Profile {
+  favourites: [Novel!]!
+  is_writer: Boolean
+  novels: [Novel!]!
+  user: User
+}
+
+type Query {
+  didUserRateNovel(novelId: ID!): UserNovelRatingCheck!
+  getAuthorNovels(userId: ID!): [Novel!]!
+  getBookmark(novelId: ID!): Bookmark
+  getChapter(id: ID!): Chapter!
+  getComments(novelId: ID!): [Comment!]!
+  getNovel(id: ID!): Novel!
+  isFavourite(novelId: ID!): Boolean!
+  longestWebnovels: [Novel!]!
+  me: User
+  mostLikedWebnovels: [Novel!]!
+  mostReadWebnovels: [Novel!]!
+  reports: [Report!]!
+  searchNovels(orderBy: [QuerySearchNovelsOrderByOrderByClause!], where: QuerySearchNovelsWhereWhereConditions): [Novel!]!
+  user(email: String, id: ID): User
+  userProfile(id: ID!): Profile!
+  userQuotes(user_id: ID!): [Quote!]!
+  userReadingList(id: ID!): [UserReadingList]!
+  users(orderBy: [QueryUsersOrderByOrderByClause!], search: String): [User!]!
+}
+
+"""Allowed column names for Query.searchNovels.orderBy."""
+enum QuerySearchNovelsOrderByColumn {
+  CHAPTERS_COUNT
+  COMMENTS_COUNT
+  FAVOURITES_COUNT
+  RATING
+  READS
+  TITLE
+}
+
+"""Order by clause for Query.searchNovels.orderBy."""
+input QuerySearchNovelsOrderByOrderByClause {
+  """The column that is used for ordering."""
+  column: QuerySearchNovelsOrderByColumn!
+  """The direction that is used for ordering."""
+  order: SortOrder!
+}
+
+"""Allowed column names for Query.searchNovels.where."""
+enum QuerySearchNovelsWhereColumn {
+  AUTHOR
+  TAG_STRING
+  TITLE
+}
+
+"""
+Dynamic WHERE conditions for the `where` argument of the query `searchNovels`.
+"""
+input QuerySearchNovelsWhereWhereConditions {
+  """A set of conditions that requires all conditions to match."""
+  AND: [QuerySearchNovelsWhereWhereConditions!]
+  """
+  Check whether a relation exists. Extra conditions or a minimum amount can be applied.
+  """
+  HAS: QuerySearchNovelsWhereWhereConditionsRelation
+  """A set of conditions that requires at least one condition to match."""
+  OR: [QuerySearchNovelsWhereWhereConditions!]
+  """The column that is used for the condition."""
+  column: QuerySearchNovelsWhereColumn
+  """The operator that is used for the condition."""
+  operator: SQLOperator = EQ
+  """The value that is used for the condition."""
+  value: Mixed
+}
+
+"""
+Dynamic HAS conditions for WHERE conditions for the `where` argument of the query `searchNovels`.
+"""
+input QuerySearchNovelsWhereWhereConditionsRelation {
+  """The amount to test."""
+  amount: Int = 1
+  """Additional condition logic."""
+  condition: QuerySearchNovelsWhereWhereConditions
+  """The comparison operator to test against the amount."""
+  operator: SQLOperator = GTE
+  """The relation that is checked."""
+  relation: String!
+}
+
+"""Allowed column names for Query.users.orderBy."""
+enum QueryUsersOrderByColumn {
+  EMAIL
+  NAME
+  ROLE
+  WRITER_REQUEST
+}
+
+"""Order by clause for Query.users.orderBy."""
+input QueryUsersOrderByOrderByClause {
+  """The column that is used for ordering."""
+  column: QueryUsersOrderByColumn!
+  """The direction that is used for ordering."""
+  order: SortOrder!
+}
+
+type Quote {
+  chapter: Chapter!
+  chapter_number: Int
+  id: ID!
+  novel: Novel!
+  quote: String!
+  user: User!
+}
+
+input QuoteInput {
+  chapter_id: ID!
+  chapter_number: Int
+  novel_id: ID!
+  quote: String!
+}
+
+input ReadingList {
+  chapter_id: ID!
+  novel_id: ID!
+}
+
+input RegisterInput {
+  email: String!
+  name: String!
+  password: String!
+  password_confirmation: String!
+}
+
+type Report {
+  comment: Comment!
+  commenter: User!
+  created_at: DateTime!
+  id: ID!
+  reporter: User!
+  updated_at: DateTime!
+}
+
+"""The available SQL operators that are used to filter query results."""
+enum SQLOperator {
+  """Whether a value is within a range of values (`BETWEEN`)"""
+  BETWEEN
+  """Equal operator (`=`)"""
+  EQ
+  """Greater than operator (`>`)"""
+  GT
+  """Greater than or equal operator (`>=`)"""
+  GTE
+  """Whether a value is within a set of values (`IN`)"""
+  IN
+  """Whether a value is not null (`IS NOT NULL`)"""
+  IS_NOT_NULL
+  """Whether a value is null (`IS NULL`)"""
+  IS_NULL
+  """Simple pattern matching (`LIKE`)"""
+  LIKE
+  """Less than operator (`<`)"""
+  LT
+  """Less than or equal operator (`<=`)"""
+  LTE
+  """Not equal operator (`!=`)"""
+  NEQ
+  """Whether a value is not within a range of values (`NOT BETWEEN`)"""
+  NOT_BETWEEN
+  """Whether a value is not within a set of values (`NOT IN`)"""
+  NOT_IN
+  """Negation of simple pattern matching (`NOT LIKE`)"""
+  NOT_LIKE
+}
+
+"""Directions for ordering a list of records."""
+enum SortOrder {
+  """Sort records in ascending order."""
+  ASC
+  """Sort records in descending order."""
+  DESC
+}
+
+type Tag {
+  id: ID!
+  name: String!
+  slug: String!
+}
+
+"""
+Specify if you want to include or exclude trashed results from a query.
+"""
+enum Trashed {
+  """Only return trashed results."""
+  ONLY
+  """Return both trashed and non-trashed results."""
+  WITH
+  """Only return non-trashed results."""
+  WITHOUT
+}
+
+type User {
+  banned: Boolean
+  created_at: DateTime!
+  email: String!
+  id: ID!
+  name: String!
+  password_reset: Boolean
+  role: String!
+  writer_request: Boolean
+}
+
+type UserNovelRatingCheck {
+  exists: Boolean!
+  rating: Float
+}
+
+type UserReadingList {
+  chapter_id: ID!
+  chapter_number: Int!
+  chapter_title: String!
+  chapters_max: Int!
+  id: ID!
+  novel_id: ID!
+  novel_title: String!
+}
+
+"""Dynamic WHERE conditions for queries."""
+input WhereConditions {
+  """A set of conditions that requires all conditions to match."""
+  AND: [WhereConditions!]
+  """
+  Check whether a relation exists. Extra conditions or a minimum amount can be applied.
+  """
+  HAS: WhereConditionsRelation
+  """A set of conditions that requires at least one condition to match."""
+  OR: [WhereConditions!]
+  """The column that is used for the condition."""
+  column: String
+  """The operator that is used for the condition."""
+  operator: SQLOperator = EQ
+  """The value that is used for the condition."""
+  value: Mixed
+}
+
+"""Dynamic HAS conditions for WHERE condition queries."""
+input WhereConditionsRelation {
+  """The amount to test."""
+  amount: Int = 1
+  """Additional condition logic."""
+  condition: WhereConditions
+  """The comparison operator to test against the amount."""
+  operator: SQLOperator = GTE
+  """The relation that is checked."""
+  relation: String!
+}

@@ -1,0 +1,229 @@
+# A datetime string with format `Y-m-d H:i:s`, e.g. `2018-05-23 13:43:32`.
+scalar DateTime @scalar(class: "Nuwave\\Lighthouse\\Schema\\Types\\Scalars\\DateTime")
+
+type Query {
+  user(
+    id: ID @eq @rules(apply: ["prohibits:email", "required_without:email"])
+    email: String @eq @rules(apply: ["prohibits:id", "required_without:id", "email"])
+  ): User @find @guard
+
+  users(
+    search: String @where(key: "name", operator: "like", ignoreNull: true)
+    orderBy: _ @orderBy(columns: ["name", "email", "role", "writer_request"])
+  ): [User!]! @guard @all
+
+  me: User @auth @guard
+
+  mostReadWebnovels: [Novel!]!
+  longestWebnovels: [Novel!]!
+  mostLikedWebnovels: [Novel!]!
+
+  userProfile(id: ID! @rules(apply: ["required"])): Profile! @guard
+  userReadingList(id: ID! @rules(apply: ["required"])): [UserReadingList]! @guard
+  userQuotes(user_id: ID! @rules(apply: ["required"])): [Quote!]! @guard
+
+  searchNovels(
+    where: _ @whereConditions(columns: ["author", "title", "tagString"])
+    orderBy: _ @orderBy(columns: ["title", "rating", "reads", "favouritesCount", "commentsCount", "chaptersCount"])
+  ): [Novel!]! @all(model: "App\\Models\\Novel") @guard
+
+  getNovel(id: ID! @whereKey): Novel! @find @guard
+  getComments(novelId: ID!): [Comment!]! @guard
+  getChapter(id: ID! @whereKey): Chapter! @find @guard 
+
+  isFavourite(novelId: ID!): Boolean! @guard
+
+  didUserRateNovel(novelId: ID!) : UserNovelRatingCheck! @guard
+
+  getBookmark(novelId: ID!) : Bookmark @guard
+
+  reports: [Report!]! @all(model: "App\\Models\\Report") @guard
+
+  getAuthorNovels(userId: ID!) : [Novel!]! @guard
+}
+
+type Mutation {
+  register(input: RegisterInput!): User!
+  login(input: LoginInput!): User!
+  logout: User @guard
+
+  updateReadingList(value: ReadingList!, force: Boolean): Boolean! @guard
+  incrementReads(novelId: ID!): Boolean! @guard
+
+  createQuote(input: QuoteInput!): ID! @guard
+  deleteQuote(id: ID! @rules(apply: ["required"])): Boolean! @guard
+
+  rateNovel(novelId: ID!, rating: Float!): UserNovelRatingCheck! @guard
+  deleteRating(novelId: ID!): UserNovelRatingCheck! @guard
+
+  createComment(novelId: ID!, parentId: ID, text: String!): Boolean! @guard
+  removeComment(commentId: ID!): Boolean! @guard
+  doVote(commentId: ID!, value: Int!): Boolean! @guard
+  removeVote(commentId: ID!): Boolean! @guard
+
+  createBookmark(novelId: ID!, chapterId: ID!): Boolean! @guard
+  addFavourite(novelId: ID!): Boolean! @guard
+  removeFavourite(novelId: ID!): Boolean! @guard
+
+  reportComment(commentId: ID!): Boolean! @guard
+  requestWriterRole: Boolean! @guard
+
+  swapUserRole(userId: ID! @rules(apply: ["required"])): Boolean! @guard
+  toggleBanUser(userId: ID! @rules(apply: ["required"])): Boolean! @guard
+  deleteUser(userId: ID! @rules(apply: ["required"])): Boolean! @guard
+
+  dismissReport(commentId: ID!): Boolean! @guard
+  
+  createNovel(
+    title: String!
+    image: String
+    description: String
+    tags: [String!]
+  ): Boolean! @guard
+  updateNovel(
+    novelId: ID!
+    title: String!
+    image: String
+    description: String
+    tags: [String!]
+  ): Boolean! @guard
+  deleteNovel(novelId: ID!): Boolean! @guard
+
+  createChapter(novelId: ID!, chapterNumber: Int): ID! @guard
+  reorderChapters(reorder: [ChapterReorder!]!): Boolean! @guard
+  updateChapterTitleAndText(chapterId: ID!, title: String!, text: String!): Boolean! @guard
+  deleteChapter(chapterId: ID!): Boolean! @guard
+}
+
+# Data types
+type Profile {
+  user: User
+  is_writer: Boolean
+  favourites: [Novel!]!
+  novels: [Novel!]!
+}
+
+type Novel {
+  id: ID!
+  author: String!
+  user: User @belongsTo
+  title: String!
+  description: String
+  image: String
+  rating: Float
+  reads: Int
+  favouritesCount: Int!
+  commentsCount: Int!
+  chaptersCount: Int!
+  chapters: [Chapter!]!
+  tags: [Tag!]!
+  tagString: String
+}
+
+type Chapter {
+  id: ID!
+  number: Int
+  title: String
+  text: String
+  novel: Novel! @belongsTo
+}
+
+type Tag {
+  id: ID!
+  name: String!
+  slug: String!
+}
+
+type Comment {
+  id: ID!
+  user: User! @belongsTo
+  novel_id: ID!
+  parent_id: ID
+  text: String!
+  upvotes: Int!
+  downvotes: Int!
+  replies: [Comment!]!
+  userVote: Int!
+}
+
+type User {
+  id: ID!
+  name: String!
+  email: String! @guard
+  role: String! @guard
+  created_at: DateTime! @guard
+  banned: Boolean
+  password_reset: Boolean
+  writer_request: Boolean
+}
+
+type UserReadingList {
+  id: ID!
+  novel_id: ID!
+  novel_title: String!
+  chapter_id: ID!
+  chapter_title: String!
+  chapter_number: Int!
+  chapters_max: Int!
+}
+
+type Quote {
+  id: ID!
+  user: User!
+  novel: Novel!
+  chapter: Chapter!
+  quote: String!
+  chapter_number: Int
+}
+
+type UserNovelRatingCheck {
+  exists: Boolean!
+  rating: Float
+}
+
+type Bookmark {
+  user_id: ID!
+  novel_id: ID!
+  chapter_id: ID!
+  page_index: Int!
+}
+
+type Report {
+    id: ID!
+    comment: Comment! @belongsTo
+    reporter: User! @belongsTo(relation: "reporter")
+    commenter: User! @belongsTo(relation: "commenter")
+    created_at: DateTime!
+    updated_at: DateTime!
+}
+
+# Input types
+input ReadingList {
+  novel_id: ID!
+  chapter_id: ID!
+}
+
+input RegisterInput {
+    name: String!
+    email: String!
+    password: String!
+    password_confirmation: String!
+}
+
+input LoginInput {
+    email: String!
+    password: String!
+}
+
+input QuoteInput {
+  novel_id: ID!
+  chapter_id: ID!
+  quote: String!
+  chapter_number: Int
+}
+
+input ChapterReorder {
+  id: ID!,
+  novelId: ID!,
+  number: Int!
+}
