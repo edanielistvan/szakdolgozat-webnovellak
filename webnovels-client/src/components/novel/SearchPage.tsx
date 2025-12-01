@@ -175,7 +175,7 @@ export function SearchPage() {
                   onClick={() => handleSortChange(column)}
                   className={`btn btn-sm ${
                     isActive ? "btn-secondary" : "btn-ghost"
-                  } flex flex-row`} // daisyUI btn
+                  } flex flex-row`}
                 >
                   {label}
                   {isActive && directionIcon}
