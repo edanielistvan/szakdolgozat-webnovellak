@@ -24,8 +24,6 @@ export function PublishNewPage() {
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
 
-    console.log("HAI");
-
     createNovel.mutate(
       {
         title,
@@ -38,7 +36,6 @@ export function PublishNewPage() {
       },
       {
         onSuccess: () => {
-          console.log("SUCC");
           queryClient.invalidateQueries({
             queryKey: ["getAuthorNovels", userId],
           });
